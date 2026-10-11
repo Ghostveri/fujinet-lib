@@ -23,7 +23,7 @@
 #if !FUJI_TESTS && !NETWORK_TESTS && !NETWORK2_TESTS && !HTML_TESTS \
   && !CALMAIL_TESTS && !REGRESSION_TESTS && !CLOCK_TESTS && !DISK_TESTS \
   && !QRCODE_TESTS && !FS_TESTS && !APPKEY_TESTS && !DEVLIST_TESTS \
-  && !PARSE_ERROR_TESTS
+  && !PARSE_ERROR_TESTS && !HTTP_COMPLETION_TESTS
 #error "You need to choose some tests"
 #endif
 
@@ -127,6 +127,11 @@ int main(void)
   test_network_read_partial();
   test_network_unit();
 #endif // NETWORK_TESTS
+
+#if HTTP_COMPLETION_TESTS
+  test_network_http_completion_fixed();
+  test_network_http_completion_chunked();
+#endif
 
 #if NETWORK2_TESTS
   /* network2.h - the v5 command additions */

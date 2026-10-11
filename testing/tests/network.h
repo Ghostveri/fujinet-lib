@@ -19,5 +19,7 @@ extern void test_network_error_path(void);
 extern void test_multiple_network_devices(void);
 extern void test_network_open_no_n_prefix(void);
 extern void test_network_read_partial(void);
+extern void test_network_http_completion_fixed(void);
+extern void test_network_http_completion_chunked(void);
 
 #endif /* NETWORK_H */

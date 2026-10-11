@@ -7,6 +7,9 @@ PRODUCTS += disk
 PRODUCTS += netfile
 PRODUCTS += net5plus
 PRODUCTS += network
+ifeq ($(PLATFORM),atari)
+PRODUCTS += httpdone
+endif
 PRODUCTS += parserr
 PRODUCTS += qrcode
 PRODUCTS += html
@@ -64,12 +67,14 @@ disk_SRC_DIRS = $(MAIN_SRC_DIRS)
 netfile_SRC_DIRS = $(MAIN_SRC_DIRS)
 net5plus_SRC_DIRS = $(MAIN_SRC_DIRS)
 network_SRC_DIRS = $(MAIN_SRC_DIRS)
+httpdone_SRC_DIRS = $(MAIN_SRC_DIRS)
 parserr_SRC_DIRS = $(MAIN_SRC_DIRS)
 qrcode_SRC_DIRS = $(MAIN_SRC_DIRS)
 html_SRC_DIRS = $(MAIN_SRC_DIRS)
 
 fujidev_CFLAGS = -DFUJI_TESTS=1
 network_CFLAGS = -DNETWORK_TESTS=1
+httpdone_CFLAGS = -DHTTP_COMPLETION_TESTS=1
 net5plus_CFLAGS = -DNETWORK2_TESTS=1
 html_CFLAGS = -DHTML_TESTS=1
 parserr_CFLAGS = -DPARSE_ERROR_TESTS=1
@@ -98,13 +103,18 @@ $(MSDOS_MENU_EXE): | $(MSDOS_MENU_DIR)
 DISK_EXTRA_FILES_MSDOS = $(MSDOS_MENU_EXE)
 endif
 
-# The test binaries do not fit the default single density ATR or a 140kb
-# ProDOS volume.
-DISK_TOOL_FLAGS_ATARI = -D -m -b MyPicoDos406
+# The Atari test binaries no longer fit the DD/180k aggregate ATR.
+# Use QD/360k for the Atari test image.
+DISK_TOOL_FLAGS_ATARI = -Q -m -b MyPicoDos406
+
+# The test binaries do not fit a 140kb ProDOS volume.
 DISK_SIZE = 800kb
 
 CFLAGS += -DBUILD_$(PLATFORM_UC) -DPLATFORM=$(DSTRING_OPEN)$(PLATFORM)$(DSTRING_CLOSE)
 CFLAGS += -DTEST_PROGRAM=$(DSTRING_OPEN)$(PRODUCT)$(DSTRING_CLOSE)
+# Global flags also reach fnlib-test.lib, where the fixture tests live.
+HTTP_COMPLETION_BASE ?=
+CFLAGS += -DHTTP_COMPLETION_BASE=$(DSTRING_OPEN)$(HTTP_COMPLETION_BASE)$(DSTRING_CLOSE)
 LDFLAGS_EXTRA_COCO = --org=0E00 --limit=7C00
 # Exit to EOS_START, which reboots from D1
 LDFLAGS_EXTRA_ADAM = -pragma-define:CRT_ON_EXIT=0xFC30

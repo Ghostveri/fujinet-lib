@@ -25,6 +25,93 @@
 #endif
 
 #define ECHO_MSG "... FujiNet integration test"
+/* Supply a reachable http://host:port base, without a trailing slash. */
+#ifndef HTTP_COMPLETION_BASE
+#define HTTP_COMPLETION_BASE ""
+#endif
+#define HTTP_COMPLETION_FIXED "N1:" HTTP_COMPLETION_BASE "/fixed"
+#define HTTP_COMPLETION_CHUNKED "N1:" HTTP_COMPLETION_BASE "/chunked"
+#define HTTP_COMPLETION_CHECK_FIXED "N1:" HTTP_COMPLETION_BASE "/check/fixed"
+#define HTTP_COMPLETION_CHECK_CHUNKED "N1:" HTTP_COMPLETION_BASE "/check/chunked"
+/* Numeric wire bytes avoid platform string/line-ending conversion. */
+static const uint8_t http_completion_body[] = {
+  0x46, 0x4e, 0x00, 0x0d, 0x0a, 0x7f, 0x80, 0xff
+};
+static const uint8_t http_completion_pass[] = { 0x50, 0x41, 0x53, 0x53 };
+
+/* Read only advertised bytes. Bound polling; the fixture deadline rejects
+ * completion caused by peer close. A stuck bus call needs an external timeout. */
+static void http_completion_response(const char *url,
+                                     const uint8_t *expected, uint16_t length)
+{
+  uint16_t bw, total, count, retry;
+  uint8_t conn, nerr, err, complete;
+  int16_t result;
+
+  err = network_open(url, OPEN_MODE_HTTP_GET, OPEN_TRANS_NONE);
+  TEST("HTTP completion open", err == FN_ERR_OK);
+  total = 0;
+  complete = 0;
+  for (retry = 0; retry < 1000; retry++) {
+    bw = 0; conn = 0; nerr = 0;
+    err = network_status(url, &bw, &conn, &nerr);
+    if (err != FN_ERR_OK)
+      TEST("HTTP completion status", err == FN_ERR_OK);
+    if (nerr != NETWORK_SUCCESS && nerr != NETWORK_ERROR_END_OF_FILE)
+      TEST("HTTP completion has no unexpected error",
+           nerr == NETWORK_SUCCESS || nerr == NETWORK_ERROR_END_OF_FILE);
+    if (bw > 0) {
+      /* One extra byte detects excess data without overflowing the buffer. */
+      count = length + 1 - total;
+      if (count > bw)
+        count = bw;
+      result = network_read(url, g.net + total, count);
+      if (result <= 0 || result > count)
+        TEST("HTTP completion read advertised bytes", result > 0 && result <= count);
+      total += result;
+      if (total > length)
+        TEST("HTTP completion has no excess body bytes", total <= length);
+    } else if (conn == 0 && nerr == NETWORK_ERROR_END_OF_FILE) {
+      complete = 1;
+      break;
+    }
+  }
+  TEST("HTTP completion exact body length", total == length);
+  TEST("HTTP completion exact body bytes",
+       memcmp(g.net, expected, length) == 0);
+  TEST("HTTP completion STATUS: no bytes, disconnected, EOF", complete);
+  /* Close only after all body and explicit EOF assertions succeeded. */
+  err = network_close(url);
+  TEST("HTTP completion close", err == FN_ERR_OK);
+}
+
+static void http_completion_case(const char *url, const char *check)
+{
+  /* Runtime check deliberately keeps all substantive code compiled. */
+  if (HTTP_COMPLETION_BASE[0] == '\0') {
+    tests_skipped++;
+    printf("SKIP  fixture required: set HTTP_COMPLETION_BASE\n");
+    return;
+  }
+  http_completion_response(url, http_completion_body,
+                           sizeof(http_completion_body));
+  /* This new request must reach the fixture while it still holds the first
+   * response socket and before its deadline, or the marker is FAIL. */
+  http_completion_response(check, http_completion_pass,
+                           sizeof(http_completion_pass));
+}
+
+void test_network_http_completion_fixed(void)
+{
+  SECTION("HTTP completion: fixed Content-Length");
+  http_completion_case(HTTP_COMPLETION_FIXED, HTTP_COMPLETION_CHECK_FIXED);
+}
+
+void test_network_http_completion_chunked(void)
+{
+  SECTION("HTTP completion: Transfer-Encoding chunked");
+  http_completion_case(HTTP_COMPLETION_CHUNKED, HTTP_COMPLETION_CHECK_CHUNKED);
+}
 //#define ALT_LINE_ENDING "\n#"
 #define ALT_LINE_ENDING "\x0d\x0a"
 
