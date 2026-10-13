@@ -3,6 +3,8 @@
 
 extern void test_network_init(void);
 extern void test_network_http_get(void);
+extern void test_network_http_fixed_completion(void);
+extern void test_network_http_chunked_completion(void);
 extern void test_network_http_get_nonblocking(void);
 extern void test_network_http_post(void);
 extern void test_network_http_headers(void);
