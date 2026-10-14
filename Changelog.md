@@ -23,6 +23,7 @@
 - [testing] The CoCo test image takes the latest cocomenu release, with disk switching and BREAK to exit; COCOMENU picks a version, git URL or directory, or leaves the menu off when undefined, as FUJINET_LIB does
 - [testing] The Adam and MS-DOS test images take the latest adam-menu and msdos-menu releases; ADAMMENU and MSDOSMENU work like COCOMENU, and testmenu.py fetches all three
 - [testing] An HTTP POST of 1200 bytes must reach the server whole
+- [testing] Verify fixed-length and chunked HTTP completion before the peer closes the connection
 
 ## [5.0.0] 2026-10-09
 
